@@ -1,0 +1,22 @@
+{
+  "name": "amazon-connect-ewt-position-in-queue",
+  "version": "1.0.0",
+  "description": "Amazon Connect Estimated Wait Time and Position in Queue solution, deployed with AWS CDK.",
+  "bin": {
+    "app": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "~5.6.3",
+    "aws-cdk": "^2.1000.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.165.0",
+    "constructs": "^10.4.2"
+  }
+}

@@ -1,0 +1,13 @@
+# CDK
+cdk.out/
+*.js
+!jest.config.js
+*.d.ts
+node_modules/
+
+# Build artifacts
+build/
+
+# Python bytecode
+__pycache__/
+*.pyc
