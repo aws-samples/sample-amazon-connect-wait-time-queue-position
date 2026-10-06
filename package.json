@@ -1,5 +1,5 @@
 {
-  "name": "amazon-connect-ewt-position-in-queue",
+  "name": "sample-amazon-connect-wait-time-queue-position",
   "version": "1.0.0",
   "description": "Amazon Connect Estimated Wait Time and Position in Queue solution, deployed with AWS CDK.",
   "bin": {
