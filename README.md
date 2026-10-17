@@ -149,6 +149,20 @@ The function returns the following attributes, accessible in the Customer Queue 
 | `AgentsOnline` | Agents logged in | `"5"` |
 | `AgentsAvailable` | Agents ready for contacts | `"2"` |
 
+### Adapting to other channels
+
+This implementation filters on the chat channel. To support voice or task contacts, update the Lambda function to detect the channel from the event:
+
+```python
+channel = event["Details"]["ContactData"]["Channel"]  # "CHAT", "VOICE", or "TASK"
+```
+
+Then use the detected channel in the `GetCurrentMetricData` filters:
+
+```python
+"Channels": [channel]
+```
+
 ## Clean up
 
 To remove all resources created by the stack, run the following from the project directory, then enter `y` to confirm:
