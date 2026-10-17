@@ -11,6 +11,17 @@ This solution uses an AWS Lambda function invoked from an Amazon Connect Custome
 
 The solution is deployed with the AWS Cloud Development Kit (AWS CDK).
 
+Beyond standard Amazon Connect chat usage, this solution incurs charges only for AWS Lambda requests and Amazon CloudWatch Logs. There is no additional charge for the GetContactMetrics and GetCurrentMetricData API requests.
+
+### The metrics behind the experience
+
+Two metrics drive this solution:
+
+- **Estimated Wait Time (EWT)** estimates, in seconds, how long a contact will wait before connecting to an agent. It is calculated from the contact's position in queue, the rate at which contacts connect and disconnect, and a correction factor that improves accuracy over time. EWT is available at three levels: the **queue level** (wait time for a new contact entering a queue, from `GetCurrentMetricData`), the **routing-step level** (available when proficiency-based routing is configured, from `GetCurrentMetricData` grouped on `ROUTING_STEP_EXPRESSION`), and the **contact level** (remaining wait time for a specific contact already in queue, from `GetContactMetrics`).
+- **Position in Queue (PIQ)** returns a contact's current position within a queue, so you can tell customers how many contacts are ahead of them. It is available only after the contact has entered a queue. For contacts that use routing criteria, it reflects the position within the active routing step.
+
+EWT requires **Next Generation Amazon Connect** and is returned only when the system can produce a prediction with sufficient confidence from current queue conditions and historical data. When confidence is low, the EWT value is not returned and the API response may be empty. This solution handles that case by falling back to a less specific source (see [Priority logic](#priority-logic)).
+
 ## Architecture
 
 ```
@@ -54,7 +65,13 @@ Run the following steps in the same Region where your Amazon Connect instance is
    cd sample-amazon-connect-wait-time-queue-position
    ```
 
-2. Get the ARN of the Amazon Connect instance that will host the Customer Queue Flow.
+2. Get the ARN of the Amazon Connect instance that will host the Customer Queue Flow. You can find it in the Amazon Connect console on your instance's detail page, or retrieve it with the AWS CLI:
+
+   ```bash
+   aws connect list-instances --query "InstanceSummaryList[].{Alias:InstanceAlias,Arn:Arn}" --output table
+   ```
+
+   This command requires the `connect:ListInstances` permission and returns every Amazon Connect instance in the account and Region. If you already know your instance, copy the ARN from the console instead.
 
 3. Set the environment variables for your AWS credentials.
 
@@ -100,6 +117,37 @@ To confirm the Lambda function is being invoked and returning metrics, view its 
 ```bash
 aws logs tail /aws/lambda/getEstimatedWaitTime-ConnectEWTStack --since 10m --format short
 ```
+
+## How it works
+
+The Lambda function reads queue information from both Connect metric APIs and selects the best available values to return to the Customer Queue Flow.
+
+- **GetContactMetrics (contact level)** returns the specific contact's position in queue and a personalized EWT prediction. These values may be absent in the first moments after a contact enters the queue, so the function prefers them when present and falls back when they are not.
+- **GetCurrentMetricData (queue level)** returns real-time metrics for the whole queue, including contacts in queue, oldest contact age, and queue-level EWT. These are available whenever there is queue activity. To return `ESTIMATED_WAIT_TIME`, the request groups results by `QUEUE` and `CHANNEL` and filters on the chat channel.
+
+### Priority logic
+
+The function resolves position in queue and estimated wait time from the most specific source available:
+
+| Metric | Priority 1 | Priority 2 | Priority 3 |
+|--------|-----------|-----------|-----------|
+| Position | GetContactMetrics | `"unknown"` (handled in flow) | Not applicable |
+| Estimated wait time | Contact-level EWT | Queue-level EWT | Oldest contact age |
+
+### Lambda response attributes
+
+The function returns the following attributes, accessible in the Customer Queue Flow through `$.External.*`:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `PositionInQueue` | Contact's position in queue | `"2"` |
+| `EstimatedWaitTimeSeconds` | Estimated wait time in seconds | `"45"` |
+| `EstimatedWaitTimeMinutes` | Estimated wait time in minutes | `"less than 1"` |
+| `EstimatedWaitTimeDisplay` | Human-readable estimated wait time | `"45 seconds"` |
+| `EWTSource` | Which API provided the estimated wait time | `"CONTACT_API"` |
+| `ContactsInQueue` | Total contacts waiting | `"3"` |
+| `AgentsOnline` | Agents logged in | `"5"` |
+| `AgentsAvailable` | Agents ready for contacts | `"2"` |
 
 ## Clean up
 
