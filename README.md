@@ -48,10 +48,12 @@ Customer Chat -> Main Flow -> Set Queue -> Set Customer Queue Flow -> Transfer t
 - Node.js (Long Term Support version v18 or higher)
 - Git installed
 - Basic knowledge of Amazon Connect and the AWS Cloud Development Kit v2 (AWS CDK)
-- Install the AWS CDK:
+- The AWS CDK Toolkit (CLI). This project pins a compatible CLI in its dev dependencies, so the simplest option is to run the CDK commands below with `npx cdk ...` (used throughout this README) after `npm ci`, which uses the pinned version automatically — no global install required.
+
+  If you prefer a global install, make sure it is recent enough for the `aws-cdk-lib` version this project uses (**CDK CLI v2.1144.0 or later**). An older global CLI fails with a "Cloud assembly schema version mismatch" error. Install or upgrade with:
 
   ```bash
-  npm install -g aws-cdk
+  npm install -g aws-cdk@latest
   ```
 
 ## Deployment
@@ -79,13 +81,13 @@ Run the following steps in the same Region where your Amazon Connect instance is
 
    ```bash
    npm ci
-   cdk bootstrap
+   npx cdk bootstrap
    ```
 
 5. Deploy the solution. Replace `<YOUR-CONNECT-INSTANCE-ARN>` with the ARN from step 2. You are prompted with a summary of the IAM changes, enter `y` to proceed:
 
    ```bash
-   cdk deploy ConnectEWTStack --parameters instanceArn=<YOUR-CONNECT-INSTANCE-ARN>
+   npx cdk deploy ConnectEWTStack --parameters instanceArn=<YOUR-CONNECT-INSTANCE-ARN>
    ```
 
 On completion, the stack creates the Lambda function, its IAM role and policy, an SQS dead-letter queue, the Lambda invoke permission, the integration association, and the `CustomerQueueFlow-EWT` Customer Queue Flow. The Lambda ARN is already wired into the flow's Invoke AWS Lambda function block, so there is no need to select it by hand.
@@ -168,7 +170,7 @@ Then use the detected channel in the `GetCurrentMetricData` filters:
 To remove all resources created by the stack, run the following from the project directory, then enter `y` to confirm:
 
 ```bash
-cdk destroy ConnectEWTStack
+npx cdk destroy ConnectEWTStack
 ```
 
 Then, in the Amazon Connect console, remove the **Set customer queue flow** block from your main contact flow, or point it to a different flow.
